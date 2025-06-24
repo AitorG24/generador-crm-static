@@ -1,0 +1,34 @@
+name: Mirror Netlify Site
+
+on:
+  workflow_dispatch:        # lo puedes lanzar a mano
+  schedule:
+    - cron: '0 3 * * *'     # cada noche a las 03:00 UTC
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Mirror site
+        run: |
+          rm -rf public
+          wget --mirror --convert-links --adjust-extension \
+               --page-requisites --no-parent \
+               -P public \
+               https://generador-crm-hma-kdj-github.netlify.app/
+
+      - name: Commit & push
+        run: |
+          git config user.name  "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No cambios"
+          else
+            git commit -m "Auto-update $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
