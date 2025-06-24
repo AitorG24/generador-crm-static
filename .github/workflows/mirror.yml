@@ -13,12 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 0️⃣  Clona el repo con historial completo
+      #   Clona el repo con historial completo
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # 1️⃣  Descarga la web y la deja en docs/
+      #   Descarga la web y la guarda en docs/
       - name: Mirror site
         run: |
           rm -rf docs tmp-mirror
@@ -30,10 +30,10 @@ jobs:
                https://generador-crm-hma-kdj-github.netlify.app/
 
           rsync -a tmp-mirror/generador-crm-hma-kdj-github.netlify.app/ docs/
-          touch docs/.nojekyll          # Desactiva Jekyll en GitHub Pages
+          touch docs/.nojekyll       # Desactiva Jekyll en GitHub Pages
           rm -rf tmp-mirror
 
-      # 2️⃣  Commit y push (forzado con lease para evitar "fetch first")
+      #   Commit y push (forzado con lease para evitar “fetch first”)
       - name: Commit & push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,4 +43,8 @@ jobs:
 
           git add -A
           if git diff --cached --quiet; then
-            echo "No changes to commit
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push --force-with-lease origin main
+          fi
