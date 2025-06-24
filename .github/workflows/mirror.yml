@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # 1️⃣ Descargar la web y colocarla en docs/
+      # 1️ Descargar la web y colocarla en docs/
       - name: Mirror site
         run: |
           # Limpiar destino
@@ -37,7 +37,7 @@ jobs:
           # Borrar temporal
           rm -rf tmp-mirror
 
-      # 2️⃣ Commit & push (si hay cambios)
+      # 2️ Commit & push (si hay cambios)
             - name: Commit & push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
