@@ -1,0 +1,49 @@
+name: Mirror Netlify Site
+
+on:
+  workflow_dispatch:        # botón “Run workflow”
+  schedule:
+    - cron: '0 3 * * *'     # cada noche 03:00 UTC
+
+permissions:
+  contents: write           # token con permiso de push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      #  Checkout completo (historial entero)
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      #  Descargar la web y dejarla en docs/
+      - name: Mirror site
+        run: |
+          rm -rf docs tmp-mirror
+          mkdir -p docs tmp-mirror
+
+          wget --mirror --convert-links --adjust-extension \
+               --page-requisites --no-parent \
+               -P tmp-mirror \
+               https://generador-crm-hma-kdj-github.netlify.app/
+
+          rsync -a tmp-mirror/generador-crm-hma-kdj-github.netlify.app/ docs/
+          rm -rf tmp-mirror
+
+      #  Commit + push (force-with-lease para evitar “fetch first”)
+      - name: Commit & push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            git push --force-with-lease origin main
+          fi
