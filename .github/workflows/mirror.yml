@@ -1,42 +1,38 @@
 name: Mirror Netlify Site
 
 on:
-  workflow_dispatch:          # lo puedes lanzar a mano desde Actions
+  workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'       # cada noche a las 03:00 UTC
+    - cron: '0 3 * * *'     # 03:00 UTC cada día
 
 permissions:
-  contents: write             # necesario para hacer push
+  contents: write           # necesario para push
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      #  Checkout completo (depth 0)
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      # Descargar la web y colocarla en docs/
+      #  Descargar la web en docs/
       - name: Mirror site
         run: |
-          # Limpiar destino
-          rm -rf docs
-          mkdir -p docs
+          rm -rf docs tmp-mirror
+          mkdir -p docs tmp-mirror
 
-          # Descargar sitio a temporal
-          rm -rf tmp-mirror
-          mkdir tmp-mirror
           wget --mirror --convert-links --adjust-extension \
                --page-requisites --no-parent \
                -P tmp-mirror \
                https://generador-crm-hma-kdj-github.netlify.app/
 
-          # Copiar contenido final a docs/
           rsync -a tmp-mirror/generador-crm-hma-kdj-github.netlify.app/ docs/
-
-          # Borrar temporal
           rm -rf tmp-mirror
 
-      # Commit y push – resolviendo posibles fast-forward
+      # 2️⃣  Commit + push (con rebase)  
       - name: Commit & push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +40,7 @@ jobs:
           git config user.name  "github-actions"
           git config user.email "github-actions@github.com"
 
-          # Traer cambios remotos antes de empujar
+          # Rebase para evitar fast-forward
           git pull --rebase --autostash origin main
 
           git add -A
@@ -52,5 +48,9 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Auto-update $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-            git push origin main
+            # Intento normal…
+            if ! git push origin main ; then
+              echo "Normal push failed, forcing with lease"
+              git push --force-with-lease origin main
+            fi
           fi
