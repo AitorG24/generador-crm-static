@@ -3,22 +3,22 @@ name: Mirror Netlify Site
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'     # 03:00 UTC cada día
+    - cron: '0 3 * * *'      # 03 UTC cada día
 
 permissions:
-  contents: write           # necesario para push
+  contents: write            # token con permiso de push
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      #  Checkout completo (depth 0)
+      #  Checkout completo
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      #  Descargar la web en docs/
+      #   Mirror → docs/
       - name: Mirror site
         run: |
           rm -rf docs tmp-mirror
@@ -32,7 +32,7 @@ jobs:
           rsync -a tmp-mirror/generador-crm-hma-kdj-github.netlify.app/ docs/
           rm -rf tmp-mirror
 
-      # 2️⃣  Commit + push (con rebase)  
+      #  Commit + push forzado (lease)
       - name: Commit & push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,17 +40,10 @@ jobs:
           git config user.name  "github-actions"
           git config user.email "github-actions@github.com"
 
-          # Rebase para evitar fast-forward
-          git pull --rebase --autostash origin main
-
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
             git commit -m "Auto-update $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-            # Intento normal…
-            if ! git push origin main ; then
-              echo "Normal push failed, forcing with lease"
-              git push --force-with-lease origin main
-            fi
+            git push --force-with-lease origin main
           fi
