@@ -3,21 +3,21 @@ name: Mirror Netlify Site
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'       # 03 UTC cada día
+    - cron: '0 3 * * *'        # cada día 03 UTC
 
 permissions:
-  contents: write
+  contents: write              # necesario para push
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
 
-      #   Checkout completo
+    steps:
+      #  Checkout completo
       - uses: actions/checkout@v3
         with: { fetch-depth: 0 }
 
-      #   Descargar sitio en docs/
+      #   Descarga y prepara en docs/
       - name: Mirror site
         run: |
           rm -rf docs tmp-mirror
@@ -29,18 +29,22 @@ jobs:
                https://generador-crm-hma-kdj-github.netlify.app/
 
           rsync -a tmp-mirror/generador-crm-hma-kdj-github.netlify.app/ docs/
-          touch docs/.nojekyll
+
+          # ---- Inserta <base href="/generador-crm-static/"> en cada index.html ----
+          find docs -name "index.html" -print0 | while IFS= read -r -d '' f; do
+            sed -i '0,/<head>/s//<head><base href="\/generador-crm-static\/">/' "$f"
+          done
+
+          touch docs/.nojekyll           # desactiva Jekyll
           rm -rf tmp-mirror
 
-      #   Commit & push con rebase + force-with-lease
+      #   Commit + push (rebase + force-with-lease)
       - name: Commit & push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
         run: |
           git config user.name  "github-actions"
           git config user.email "github-actions@github.com"
 
-          # integrar posible avance remoto
           git pull --rebase --autostash origin main
 
           git add -A
