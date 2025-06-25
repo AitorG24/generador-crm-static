@@ -3,10 +3,10 @@ name: Mirror Netlify Site
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'    # cada día 03 UTC
+    - cron: '0 3 * * *'          # cada día 03 UTC
 
 permissions:
-  contents: write
+  contents: write                # token con permiso de push
 
 jobs:
   build:
@@ -15,15 +15,12 @@ jobs:
     steps:
       # 0️⃣  Checkout completo
       - uses: actions/checkout@v3
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
-      # 1️⃣  Descarga y prepara en docs/
+      # 1️⃣  Descarga y preparación en docs/
       - name: Mirror site
         run: |
-          # Alinea la copia local con el remoto antes de tocar nada
-          git fetch origin main
-          git reset --hard origin/main
-
           rm -rf docs tmp-mirror
           mkdir -p docs tmp-mirror
 
@@ -34,17 +31,18 @@ jobs:
 
           rsync -a tmp-mirror/generador-crm-hma-kdj-github.netlify.app/ docs/
 
-          # Inserta la etiqueta <base> para que las rutas absolutas funcionen
+          # Inserta <base href="/generador-crm-static/">
           find docs -name "index.html" -print0 | while IFS= read -r -d '' f; do
             sed -i '0,/<head>/s//<head><base href="\/generador-crm-static\/">/' "$f"
           done
 
-          touch docs/.nojekyll
+          touch docs/.nojekyll            # desactiva Jekyll
           rm -rf tmp-mirror
 
-      # 2️⃣  Commit + push forzado con lease (no más fetch-first)
+      # 2️⃣  Commit y push (force-with-lease)
       - name: Commit & push
-        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name  "github-actions"
           git config user.email "github-actions@github.com"
@@ -54,5 +52,5 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Auto-update $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            git push --force-with-lease origin HEAD:main
+            git push --force-with-lease origin main
           fi
