@@ -650,7 +650,7 @@
     </div>
 
     <script>
-      fetch("/menu/menu.html")
+      fetch("menu.html")
         .then((response) => response.text())
         .then((data) => {
           document.getElementById("menu-container").innerHTML = data;
@@ -684,7 +684,7 @@
 
     <!-- Añade este script justo antes del cierre del body -->
     <script>
-      fetch("/footer/footer.html")
+      fetch("footer.html")
         .then((response) => response.text())
         .then((data) => {
           // Crear un elemento temporal para parsear el HTML
@@ -706,7 +706,7 @@
 
     <!-- Script para el footer -->
     <script>
-      fetch("/footer/footer.html")
+      fetch("footer.html")
         .then((response) => response.text())
         .then((data) => {
           const tempDiv = document.createElement("div");
